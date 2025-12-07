@@ -1,4 +1,13 @@
 package com.microService.IA_Image_Text.infraestructure.adapter.secondary.dto;
 
-public record AiRequestDto (String imageUrl){
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AiRequestDto {
+
+    private String imageUrl;
 }

@@ -3,7 +3,7 @@ package com.microService.IA_Image_Text.infraestructure.adapter.secondary;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.microService.IA_Image_Text.application.port.in.ImageStorageUseCase;
+import com.microService.IA_Image_Text.application.port.out.ImageStorafePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,20 +13,21 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class CloudinaryAdapter implements ImageStorageUseCase {
+public class CloudinaryAdapter implements ImageStorafePort {
     private final String FOLDER_NAME = "haircut_analysis";
     private final Cloudinary cloudinary;
 
 
     // funcion que gestiona la imagen y la manda a cloudinary
     @Override
-    public String execute(byte[] imageBytes, String userId) {
+    public String saveImage(byte[] imageBytes, String userId) {
         try {
             // Genera un id unico para el archivo, incluyendo el id del usuario
             String publicId = userId + "/" + UUID.randomUUID().toString();
 
             // Sube imagen a cloudinary
-            Map uploadResult= cloudinary.uploader().upload(
+            @SuppressWarnings("unchecked")
+            Map<String, Object> uploadResult = (Map<String, Object>) cloudinary.uploader().upload(
                     imageBytes,
                     ObjectUtils.asMap(
                             "folder", FOLDER_NAME,

@@ -4,9 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AiResponseDto {
 
-public record AiResponseDto(
-        String recommendedCut,
-        double confidenceScore,
-        String analysisDetails
-){}
+    private String recommendedCut;
+    private double confidenceScore;
+    private String analysisDetails;
+}

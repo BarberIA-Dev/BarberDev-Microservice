@@ -13,8 +13,8 @@ public class HttpClientConfig {
     private String apiUrl;
 
     @Bean
-    public WebClient webClient(WebClient.Builder builder){
-        return builder
+    public WebClient webClient(){
+        return WebClient.builder()
                 .baseUrl(apiUrl)
                 .build();
     }
