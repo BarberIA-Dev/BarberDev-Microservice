@@ -11,7 +11,7 @@ import java.util.Map;
 @Configuration
 public class CloudinaryConfig {
 
-    // Credenciales para entrar a claude (Variables de entorno)
+
     @Value("${cloudinary.cloud-name}")
     private String cloudName;
 
@@ -21,7 +21,7 @@ public class CloudinaryConfig {
     @Value("${cloudinary.api-secret}")
     private String apiSecret;
 
-    // Pasa credenciales a Cloudinary ("Inicio de sesion")
+
     @Bean
     public Cloudinary cloudinary(){
         Map<String, String> config = new HashMap<>();

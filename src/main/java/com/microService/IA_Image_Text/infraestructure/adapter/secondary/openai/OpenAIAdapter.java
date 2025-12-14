@@ -1,33 +1,45 @@
-package com.microService.IA_Image_Text.infraestructure.adapter.secondary;
+package com.microService.IA_Image_Text.infraestructure.adapter.secondary.openai;
 
 import com.microService.IA_Image_Text.application.port.out.IaRecommendationPort;
+import com.microService.IA_Image_Text.domain.exception.ExternalServiceException;
 import com.microService.IA_Image_Text.domain.model.IaResponse;
 import com.microService.IA_Image_Text.infraestructure.adapter.secondary.dto.AiResponseDto;
-import com.microService.IA_Image_Text.infraestructure.adapter.secondary.mapper.IaResponseMapper;
-import lombok.RequiredArgsConstructor;
+import com.microService.IA_Image_Text.infraestructure.adapter.secondary.openai.mapper.OpenAIResponseMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 import java.util.List;
 import java.util.Map;
 
-@Service
-@RequiredArgsConstructor
+@Slf4j
+@Service("openAIAdapter")
 public class OpenAIAdapter implements IaRecommendationPort {
 
     private final WebClient webClient;
-    private final IaResponseMapper mapper;
+    private final OpenAIResponseMapper mapper;
+    private final String apiKey;
 
-    @Value("${ia.api.key}")
-    private String apiKey;
+    public OpenAIAdapter(
+            @Qualifier("openAIWebClient") WebClient webClient,
+            OpenAIResponseMapper mapper,
+            @Value("${openai.api.key}") String apiKey
+    ) {
+        this.webClient = webClient;
+        this.mapper = mapper;
+        this.apiKey = apiKey;
+    }
 
     @Override
     public IaResponse getRecommendation(String imageUrl) {
+        log.info("Solicitando recomendación a OpenAI para imagen: {}", imageUrl);
 
         Map<String, String> textContent = Map.of(
                 "type", "text",
-                "text", "Analiza la imagen del rostro. Recomienda un corte de pelo basado en la forma de la cara y la textura. El resultado debe ser un JSON estricto con los campos: cutName (string), confidenceScore (float), y analysisDetails (string)."
+                "text", "Analiza la imagen del rostro. Recomienda un corte de pelo basado en la forma de la cara y la textura. El resultado debe ser un JSON estricto con los campos: recommendedCut (string), confidenceScore (float entre 0 y 1), y analysisDetails (string)."
         );
 
         Map<String, Object> imageUrlMap = Map.of("url", imageUrl);
@@ -55,7 +67,7 @@ public class OpenAIAdapter implements IaRecommendationPort {
                     .onStatus(status -> status.isError(), response -> {
                         return response.createException()
                                 .flatMap(e -> {
-                                    System.err.println("OpenAI API Falló: Código " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+                                    log.error("OpenAI API Falló: Código {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
                                     return reactor.core.publisher.Mono.error(e);
                                 });
                     })
@@ -63,18 +75,21 @@ public class OpenAIAdapter implements IaRecommendationPort {
                     .block();
 
             if (responseDto != null) {
+                log.info("Respuesta recibida de OpenAI exitosamente");
                 return mapper.toDomain(responseDto);
             }
 
         } catch (WebClientResponseException e) {
-            throw new RuntimeException("Fallo en el servicio de análisis de IA. Error HTTP: " + e.getStatusCode(), e);
-
+            log.error("Error HTTP de OpenAI: {}", e.getStatusCode(), e);
+            throw new ExternalServiceException(
+                    "Fallo en el servicio de análisis de IA. Error HTTP: " + e.getStatusCode(), e
+            );
         } catch (Exception e) {
-            System.err.println("Error de Conexión/Timeout con OpenAI: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Fallo en el servicio de análisis de IA", e);
+            log.error("Error de conexión/timeout con OpenAI: {}", e.getMessage(), e);
+            throw new ExternalServiceException("Fallo en el servicio de análisis de IA", e);
         }
 
-        return new IaResponse("No Definido", 0.0, "Análisis fallido o sin respuesta de la IA.");
+        throw new ExternalServiceException("Análisis fallido o sin respuesta de la IA");
     }
 }
+
